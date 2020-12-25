@@ -1,0 +1,13 @@
+---
+BasedOnStyle: Google
+Language: Cpp
+AccessModifierOffset: -4
+IndentWidth: 4
+ColumnLimit: 120
+PointerAlignment: Left
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+...
