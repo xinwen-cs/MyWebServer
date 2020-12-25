@@ -17,9 +17,9 @@
 #include "../config/config.h"
 #include "../http/http_conn.h"
 #include "../threadpool/threadpool.h"
+#include "epoller.h"
 
 #define MAX_FD 65536
-#define MAX_EVENT_NUMBER 10000
 
 class WebServer {
 public:
@@ -28,6 +28,10 @@ public:
 
     void eventLoop();
 
+    void dealListen();
+
+    void addClient(int fd, sockaddr_in addr);
+    void closeConn(int fd);
 private:
     int m_port;
 
@@ -35,9 +39,8 @@ private:
     threadpool<http_conn>* m_pool;
 
     int m_listenfd;
-    int m_epollfd;
 
-    epoll_event events[MAX_EVENT_NUMBER];
+    Epoller* epoller;
 };
 
 #endif

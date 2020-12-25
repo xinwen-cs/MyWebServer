@@ -24,6 +24,10 @@ Speed=69660 pages/min, 118066 bytes/sec.
 Requests: 11610 susceed, 0 failed.
 ```
 
+2020.12.25
+
+对代码进行了一些重构, 添加epoller类, 封装addfd等操作, 修改webserver和http_conn的实现. 目前htpp_conn中的modfd存在耦合问题, 难以移除.
+
 # 参考文献
 ```
 @book{游双2013Linux,
