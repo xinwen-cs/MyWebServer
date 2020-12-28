@@ -26,7 +26,10 @@ Requests: 11610 susceed, 0 failed.
 
 2020.12.25
 
-对代码进行了一些重构, 添加epoller类, 封装addfd等操作, 修改webserver和http_conn的实现. 目前htpp_conn中的modfd存在耦合问题, 难以移除.
+对代码进行了一些重构, 添加epoller类, 封装addfd等操作, 修改webserver和http_conn的实现. 目前http_conn中的modfd存在耦合问题, 难以移除.
+
+2020.12.28
+对http类进行了重构, 新建http_request和http_response两个类, 前者仍有bug, modfd依然耦合.
 
 # 参考文献
 ```
