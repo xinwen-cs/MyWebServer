@@ -92,10 +92,6 @@ bool http_conn::write() {
         bytes_to_send -= temp;
         bytes_have_send += temp;
 
-        if (temp == 0) {
-            break;
-        }
-
         if (bytes_to_send <= bytes_have_send) {
             response.unmap();
             if (request.getKeepAlive()) {
