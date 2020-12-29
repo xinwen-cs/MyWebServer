@@ -25,6 +25,9 @@ void http_conn::init(int sockfd, const sockaddr_in& addr) {
     ++m_user_count;
 
     init();
+
+    // reset m_checked_idx and check_state
+    request.init();
 }
 
 // used by multiple functions
@@ -101,18 +104,13 @@ bool http_conn::write() {
                 return false;
             }
         }
-
     }
 }
 
 void http_conn::process() {
     int ret = request.process_read(m_read_buf, m_read_idx);
 
-    // FIXME
-    ret = 1;
-
     if (ret == 0) {  // NO
-        // continue read
         modfd(m_epollfd, m_sockfd, EPOLLIN);
         return;
     } else if (ret == 1) {  // GET
@@ -122,6 +120,7 @@ void http_conn::process() {
     }
 
     bool write_ret = response.process_write(m_write_buf, &m_write_idx);
+
     // false when write_buffer overflow
     if (!write_ret) {
         close_conn();

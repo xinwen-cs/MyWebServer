@@ -38,6 +38,10 @@ WebServer::WebServer(Config& config) {
     address.sin_addr.s_addr = htonl(INADDR_ANY);
     address.sin_port = htons(m_port);
 
+    // for quick debugging
+    int reuse = 1;
+    setsockopt(m_listenfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+
     ret = bind(m_listenfd, (struct sockaddr*)&address, sizeof(address));
     assert(ret >= 0);
 

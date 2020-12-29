@@ -70,14 +70,8 @@ bool http_response::add_content(const char* content) {
 // I think it is do_response is more properly
 void http_response::do_request() {
     strcpy(m_real_file, doc_root);
-
     int len = strlen(doc_root);
-
-    // FIXME
-    // m_url = "/index.html";
-    // m_url = "/";
-
-    // strncpy(m_real_file + len, m_url, FILENAME_LEN - len - 1);
+    strncpy(m_real_file + len, m_url, FILENAME_LEN - len - 1);
 
     if (stat(m_real_file, &m_file_stat) < 0) {
         m_code = 404;

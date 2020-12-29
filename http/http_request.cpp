@@ -114,8 +114,6 @@ int http_request::process_read(char* buf, int idx) {
     m_read_idx = idx;
 
     LINE_STATUS line_status = LINE_OK;
-    m_check_state = CHECK_STATE_REQUESTLINE;
-
     HTTP_CODE ret = NO_REQUEST;
     char* text = 0;
 
@@ -125,6 +123,8 @@ int http_request::process_read(char* buf, int idx) {
         text = m_read_buf + m_start_line;
 
         m_start_line = m_checked_idx;
+
+        // printf("got 1 http line: %s\n", text);
 
         switch (m_check_state) {
             case CHECK_STATE_REQUESTLINE: {
@@ -161,7 +161,6 @@ int http_request::process_read(char* buf, int idx) {
 
     return NO_REQUEST;
 }
-
 
 bool http_request::getKeepAlive() {
     return m_keep_alive;

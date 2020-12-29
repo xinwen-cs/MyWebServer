@@ -36,6 +36,7 @@ public:
     bool write();
 
     void process();
+
 private:
     void init();
     void prepare_writev();
