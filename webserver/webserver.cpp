@@ -84,8 +84,13 @@ void WebServer::eventLoop() {
                 }
 
             } else if (events & EPOLLOUT) {
-                if (!m_users[sockfd].write()) {
+                int write_errno = 0;
+                if (!m_users[sockfd].write(&write_errno)) {
                     closeConn(sockfd);
+                } else {
+                    if (errno == EAGAIN) {
+                        epoller->modfd(sockfd, EPOLLOUT);
+                    }
                 }
 
             } else {

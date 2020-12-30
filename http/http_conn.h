@@ -33,7 +33,7 @@ public:
     void close_conn(bool real_close = true);
 
     bool read();
-    bool write();
+    bool write(int* saveErrno);
 
     void process();
 
@@ -60,6 +60,9 @@ private:
     int m_write_idx;
     char m_read_buf[READ_BUFFER_SIZE];
     char m_write_buf[WRITE_BUFFER_SIZE];
+
+    int bytes_to_send;
+    int bytes_have_send;
 
     http_request request;
     http_response response;

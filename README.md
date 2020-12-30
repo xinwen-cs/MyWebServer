@@ -36,6 +36,10 @@ Requests: 11610 susceed, 0 failed.
 
 修复http_response的bug, 每次GET/BAD_REQUEST后需要将m_checked_idx和m_check_state复位. 将listenfd设置为重用, 方便调试.
 
+2020.12.30
+
+修复了http_conn::write传输大文件时的bug.
+
 # 参考文献
 ```
 @book{游双2013Linux,
