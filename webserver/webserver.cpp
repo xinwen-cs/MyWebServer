@@ -84,14 +84,14 @@ void WebServer::eventLoop() {
                 }
 
             } else if (events & EPOLLOUT) {
-                int write_errno = 0;
-                if (!m_users[sockfd].write(&write_errno)) {
+                if (!m_users[sockfd].write()) {
                     closeConn(sockfd);
-                } else {
-                    if (errno == EAGAIN) {
-                        epoller->modfd(sockfd, EPOLLOUT);
-                    }
                 }
+                // } else {
+                //     if (errno == EAGAIN) {
+                //         epoller->modfd(sockfd, EPOLLOUT);
+                //     }
+                // }
 
             } else {
                 // LOG Unexpected event;

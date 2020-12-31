@@ -40,6 +40,10 @@ Requests: 11610 susceed, 0 failed.
 
 修复了http_conn::write传输大文件时的bug.
 
+2020.12.31
+
+修复了keep-alive模式不能正常工作的bug.
+
 # 参考文献
 ```
 @book{游双2013Linux,

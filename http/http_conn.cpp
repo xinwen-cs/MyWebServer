@@ -25,9 +25,6 @@ void http_conn::init(int sockfd, const sockaddr_in& addr) {
     ++m_user_count;
 
     init();
-
-    // reset m_checked_idx and check_state
-    request.init();
 }
 
 // used by multiple functions
@@ -37,6 +34,9 @@ void http_conn::init() {
 
     memset(m_read_buf, '\0', READ_BUFFER_SIZE);
     memset(m_write_buf, '\0', WRITE_BUFFER_SIZE);
+
+    // reset m_checked_idx and check_state
+    request.init();
 }
 
 void http_conn::close_conn(bool real_close) {
@@ -70,16 +70,15 @@ bool http_conn::read() {
     return true;
 }
 
-bool http_conn::write(int* saveErrno) {
+bool http_conn::write() {
     int temp = 0;
 
     while (1) {
         temp = writev(m_sockfd, m_iv, m_iv_count);
 
         if (temp <= -1) {
-            *saveErrno = errno;
-            if (errno == EAGAIN) {
-                // modfd(m_epollfd, m_sockfd, EPOLLOUT);
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                modfd(m_epollfd, m_sockfd, EPOLLOUT);
                 return true;
             }
             response.unmap();
@@ -101,8 +100,9 @@ bool http_conn::write(int* saveErrno) {
         if (bytes_to_send <= 0) {
             response.unmap();
             if (request.getKeepAlive()) {
-                // init();
-                // return true;
+                modfd(m_epollfd, m_sockfd, EPOLLIN);
+                init();
+                return true;
             } else {
                 return false;
             }

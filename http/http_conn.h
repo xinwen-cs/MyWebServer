@@ -33,7 +33,7 @@ public:
     void close_conn(bool real_close = true);
 
     bool read();
-    bool write(int* saveErrno);
+    bool write();
 
     void process();
 
