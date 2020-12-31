@@ -44,6 +44,10 @@ Requests: 11610 susceed, 0 failed.
 
 修复了keep-alive模式不能正常工作的bug.
 
+2020.12.31
+
+修复了编译时会产生warning的语句
+
 # 参考文献
 ```
 @book{游双2013Linux,

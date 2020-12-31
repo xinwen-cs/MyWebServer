@@ -45,7 +45,7 @@ bool http_response::add_status_line(int status, const char* title) {
     return add_response("%s %d %s\r\n", "HTTP/1.1", status, title);
 }
 
-bool http_response::add_headers(int content_len) {
+void http_response::add_headers(int content_len) {
     add_content_length(content_len);
     add_linger();
     add_blank_line();
@@ -145,13 +145,7 @@ bool http_response::process_write(char* buf, int* idx) {
                 add_headers(m_file_stat.st_size);
                 return true;
             }
-            // } else {
-            //     const char* ok_string = "<html><body></body></html>";
-            //     add_headers(strlen(ok_string));
-            //     if (!add_content(ok_string)) {
-            //         return false;
-            //     }
-            // }
+            break;
         }
         default: { return false; }
     }

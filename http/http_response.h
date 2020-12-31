@@ -23,7 +23,7 @@ private:
     bool add_response(const char* format, ...);
     bool add_content(const char* content);
     bool add_status_line(int status, const char* title);
-    bool add_headers(int content_length);
+    void add_headers(int content_length);
     bool add_content_length(int content_length);
     bool add_linger();
     bool add_blank_line();

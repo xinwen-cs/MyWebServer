@@ -30,7 +30,7 @@ private:
 
 template <typename T>
 threadpool<T>::threadpool(int thread_number, int max_requests)
-    : m_thread_number(thread_number), m_max_requests(max_requests), m_stop(false), m_threads(NULL) {
+    : m_thread_number(thread_number), m_max_requests(max_requests), m_threads(NULL), m_stop(false) {
     if ((thread_number <= 0) || (max_requests <= 0)) {
         throw std::exception();
     }
@@ -62,7 +62,7 @@ threadpool<T>::~threadpool() {
 template <typename T>
 bool threadpool<T>::append(T* request) {
     m_queuelocker.lock();
-    if (m_workqueue.size() > m_max_requests) {
+    if (m_workqueue.size() > static_cast<unsigned>(m_max_requests)) {
         m_queuelocker.unlock();
         return false;
     }
