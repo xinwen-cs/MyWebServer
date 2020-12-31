@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include "http_request.h"
 #include "http_response.h"
+#include "../webserver/epoller.h"
 
 class http_conn {
 public:
@@ -42,8 +43,7 @@ private:
     void prepare_writev();
 
 public:
-    // should not be here it is ugly
-    static int m_epollfd;
+    static Epoller* epoller;
     static int m_user_count;
 
     static const int READ_BUFFER_SIZE = 2048;

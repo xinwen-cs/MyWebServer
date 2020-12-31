@@ -52,8 +52,7 @@ WebServer::WebServer(Config& config) {
 
     epoller->addfd(m_listenfd, false);
 
-    // FIXME
-    http_conn::m_epollfd = epoller->epoll_fd;
+    http_conn::epoller = epoller;
 
     printf("webserver init at localhost:%d\n", m_port);
 }

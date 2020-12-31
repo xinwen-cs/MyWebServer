@@ -1,14 +1,7 @@
 #include "http_conn.h"
 
-void modfd(int epollfd, int fd, int ev) {
-    epoll_event event;
-    event.data.fd = fd;
-    event.events = ev | EPOLLET | EPOLLONESHOT | EPOLLRDHUP;
-    epoll_ctl(epollfd, EPOLL_CTL_MOD, fd, &event);
-}
-
 int http_conn::m_user_count = 0;
-int http_conn::m_epollfd = -1;
+Epoller* http_conn::epoller = NULL;
 
 void http_conn::init(int sockfd, const sockaddr_in& addr) {
     m_sockfd = sockfd;
@@ -78,7 +71,7 @@ bool http_conn::write() {
 
         if (temp <= -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                modfd(m_epollfd, m_sockfd, EPOLLOUT);
+                epoller->modfd(m_sockfd, EPOLLOUT);
                 return true;
             }
             response.unmap();
@@ -100,7 +93,7 @@ bool http_conn::write() {
         if (bytes_to_send <= 0) {
             response.unmap();
             if (request.getKeepAlive()) {
-                modfd(m_epollfd, m_sockfd, EPOLLIN);
+                epoller->modfd(m_sockfd, EPOLLIN);
                 init();
                 return true;
             } else {
@@ -114,7 +107,7 @@ void http_conn::process() {
     int ret = request.process_read(m_read_buf, m_read_idx);
 
     if (ret == 0) {  // NO
-        modfd(m_epollfd, m_sockfd, EPOLLIN);
+        epoller->modfd(m_sockfd, EPOLLIN);
         return;
     } else if (ret == 1) {  // GET
         response.init(request.getPath(), request.getKeepAlive(), 200);
@@ -132,7 +125,7 @@ void http_conn::process() {
     prepare_writev();
 
     // tell epoll_wait, i want to write
-    modfd(m_epollfd, m_sockfd, EPOLLOUT);
+    epoller->modfd(m_sockfd, EPOLLOUT);
 }
 
 void http_conn::prepare_writev() {

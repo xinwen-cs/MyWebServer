@@ -48,6 +48,10 @@ Requests: 11610 susceed, 0 failed.
 
 修复了编译时会产生warning的语句
 
+2020.12.31
+
+将m_epollfd更改为epoller, 更加简洁
+
 # 参考文献
 ```
 @book{游双2013Linux,
