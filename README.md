@@ -52,6 +52,10 @@ Requests: 11610 susceed, 0 failed.
 
 将m_epollfd更改为epoller, 更加简洁
 
+2021.1.1
+
+添加升序链表定时器处理非活动连接, 代码需要进一步封装简化
+
 # 参考文献
 ```
 @book{游双2013Linux,

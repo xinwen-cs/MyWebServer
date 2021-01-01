@@ -17,6 +17,7 @@
 #include "../config/config.h"
 #include "../http/http_conn.h"
 #include "../threadpool/threadpool.h"
+#include "../timer/lst_timer.h"
 #include "epoller.h"
 
 #define MAX_FD 65536
@@ -32,15 +33,20 @@ public:
 
     void addClient(int fd, sockaddr_in addr);
     void closeConn(int fd);
+
 private:
     int m_port;
 
     http_conn* m_users;
+    client_data* users;
     threadpool<http_conn>* m_pool;
 
     int m_listenfd;
 
     Epoller* epoller;
+
+    bool stop_server = false;
+    bool timeout = false;
 };
 
 #endif

@@ -25,6 +25,8 @@ file(GLOB PROJECT_SOURCES
 
     ${PROJECT_SOURCE_DIR}/http/*.h
     ${PROJECT_SOURCE_DIR}/http/*.cpp
+
+    ${PROJECT_SOURCE_DIR}/timer/*.h  
 )
 
 add_executable(${PROJECT_NAME} main.cpp ${PROJECT_SOURCES})
