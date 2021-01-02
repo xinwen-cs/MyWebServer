@@ -19,6 +19,7 @@
 #include "../threadpool/threadpool.h"
 #include "../timer/lst_timer.h"
 #include "epoller.h"
+#include "../log/log.h"
 
 #define MAX_FD 65536
 

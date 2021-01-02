@@ -98,6 +98,8 @@ WebServer::WebServer(Config& config) {
     users = new client_data[MAX_FD];
 
     alarm(TIMESLOT);
+
+    Log::get_instance()->init("serverlog", 8192, 1000000, 10000);
 }
 
 void WebServer::eventLoop() {
@@ -234,13 +236,13 @@ void WebServer::dealListen() {
 void WebServer::addClient(int fd, sockaddr_in addr) {
     m_users[fd].init(fd, addr);
     epoller->addfd(fd, true);
-    // LOG_INFO
+    LOG_INFO("%s: %d", "new client", fd);
 }
 
 void WebServer::closeConn(int fd) {
     m_users[fd].close_conn();
     epoller->removefd(fd);
-    // LOG_INFO
+    LOG_INFO("%s: %d", "close client", fd);
 }
 
 WebServer::~WebServer() {
