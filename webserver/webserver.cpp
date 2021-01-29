@@ -1,10 +1,6 @@
 #include "webserver.h"
 
-#define TIMESLOT 5
-
 static int pipefd[2];
-static sort_timer_lst timer_lst;
-static int epollfd;
 
 int setnonblocking(int fd) {
     int old_option = fcntl(fd, F_GETFL);
@@ -31,18 +27,14 @@ void addsig(int sig, void(handler)(int), bool restart = true) {
     assert(sigaction(sig, &sa, NULL) != -1);
 }
 
-void cb_func(client_data* user_data) {
-    assert(user_data);
-    epoll_ctl(epollfd, EPOLL_CTL_DEL, user_data->sockfd, 0);
-    close(user_data->sockfd);
-    printf("close fd %d\n", user_data->sockfd);
-}
-
 WebServer::WebServer(Config& config) {
     m_port = config.port;
 
     addsig(SIGPIPE, SIG_IGN);
+    addsig(SIGALRM, sig_handler);
+    addsig(SIGTERM, sig_handler);
 
+    // http://www.cplusplus.com/articles/EhvU7k9E/
     try {
         m_pool = new threadpool<http_conn>;
     } catch (...) {
@@ -77,7 +69,7 @@ WebServer::WebServer(Config& config) {
 
     epoller = new Epoller();
 
-    epollfd = epoller->epoll_fd;
+    timer_lst = new sort_timer_lst();
 
     epoller->addfd(m_listenfd, false);
 
@@ -91,11 +83,6 @@ WebServer::WebServer(Config& config) {
     setnonblocking(pipefd[1]);
     // not 100% correct because should not have RDHUP!!!
     epoller->addfd(pipefd[0], false);
-
-    addsig(SIGALRM, sig_handler);
-    addsig(SIGTERM, sig_handler);
-
-    users = new client_data[MAX_FD];
 
     alarm(TIMESLOT);
 
@@ -120,9 +107,9 @@ void WebServer::eventLoop() {
             } else if (events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
                 closeConn(sockfd);
 
-                util_timer* timer = users[sockfd].timer;
+                util_timer* timer = m_users[sockfd].timer;
                 if (timer) {
-                    timer_lst.del_timer(timer);
+                    timer_lst->del_timer(timer);
                 }
 
             } else if ((sockfd == pipefd[0]) && (events & EPOLLIN)) {
@@ -145,45 +132,35 @@ void WebServer::eventLoop() {
                         }
                     }
                 }
+
             } else if (events & EPOLLIN) {
                 if (m_users[sockfd].read()) {
-                    util_timer* timer = users[sockfd].timer;
-                    if (timer) {
-                        time_t cur = time(NULL);
-                        timer->expire = cur + 3 * TIMESLOT;
-                        timer_lst.adjust_timer(timer);
-                        // printf("adjust timer once after read\n");
-                    }
+                    extentTimer(sockfd);
 
                     m_pool->append(m_users + sockfd);
                 } else {
-                    closeConn(sockfd);
+                    // closeConn(sockfd);
 
-                    // don't need this
-                    // timer->cb_func(&users_timer[sockfd]);
-                    util_timer* timer = users[sockfd].timer;
+                    util_timer* timer = m_users[sockfd].timer;
+                    timer->cb();
                     if (timer) {
-                        timer_lst.del_timer(timer);
+                        timer_lst->del_timer(timer);
                     }
                 }
 
             } else if (events & EPOLLOUT) {
-                util_timer* timer = users[sockfd].timer;
                 if (!m_users[sockfd].write()) {
-                    closeConn(sockfd);
-
+                    // closeConn(sockfd);
                     // timer->cb_func(&users_timer[sockfd]);
+
+                    util_timer* timer = m_users[sockfd].timer;
+                    timer->cb();
                     if (timer) {
-                        timer_lst.del_timer(timer);
+                        timer_lst->del_timer(timer);
                     }
 
                 } else {
-                    if (timer) {
-                        time_t cur = time(NULL);
-                        timer->expire = cur + 3 * TIMESLOT;
-                        timer_lst.adjust_timer(timer);
-                        // printf("adjust timer once after write\n");
-                    }
+                    extentTimer(sockfd);
                 }
 
             } else {
@@ -192,7 +169,7 @@ void WebServer::eventLoop() {
         }
 
         if (timeout) {
-            timer_lst.tick();
+            timer_lst->tick();
             alarm(TIMESLOT);
             timeout = false;
         }
@@ -220,16 +197,6 @@ void WebServer::dealListen() {
         }
 
         addClient(connfd, client_address);
-
-        users[connfd].address = client_address;
-        users[connfd].sockfd = connfd;
-        util_timer* timer = new util_timer;
-        timer->user_data = &users[connfd];
-        timer->cb_func = cb_func;
-        time_t cur = time(NULL);
-        timer->expire = cur + 3 * TIMESLOT;
-        users[connfd].timer = timer;
-        timer_lst.add_timer(timer);
     }
 }
 
@@ -237,6 +204,25 @@ void WebServer::addClient(int fd, sockaddr_in addr) {
     m_users[fd].init(fd, addr);
     epoller->addfd(fd, true);
     LOG_INFO("%s: %d", "new client", fd);
+
+    util_timer* timer = new util_timer;
+    timer->user_data = &m_users[fd];
+    timer->expire = time(NULL) + 3 * TIMESLOT;
+    timer->cb = std::bind(&WebServer::closeConn, this, fd);
+    m_users[fd].timer = timer;
+    timer_lst->add_timer(timer);
+
+    // timer_->add(fd, timeoutMS_, std::bind(&WebServer::CloseConn_, this, &users_[fd]));
+}
+
+void WebServer::extentTimer(int fd) {
+    util_timer* timer = m_users[fd].timer;
+
+    if (timer) {
+        time_t cur = time(NULL);
+        timer->expire = cur + 3 * TIMESLOT;
+        timer_lst->adjust_timer(timer);
+    }
 }
 
 void WebServer::closeConn(int fd) {
@@ -249,6 +235,7 @@ WebServer::~WebServer() {
     delete[] m_users;
     delete m_pool;
     delete epoller;
+    delete timer_lst;
 
     close(pipefd[1]);
     close(pipefd[0]);

@@ -13,6 +13,7 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <functional>
 
 #include "../config/config.h"
 #include "../http/http_conn.h"
@@ -22,6 +23,7 @@
 #include "../log/log.h"
 
 #define MAX_FD 65536
+#define TIMESLOT 5
 
 class WebServer {
 public:
@@ -35,11 +37,11 @@ public:
     void addClient(int fd, sockaddr_in addr);
     void closeConn(int fd);
 
+    void extentTimer(int fd);
 private:
     int m_port;
 
     http_conn* m_users;
-    client_data* users;
     threadpool<http_conn>* m_pool;
 
     int m_listenfd;
@@ -47,7 +49,10 @@ private:
     Epoller* epoller;
 
     bool stop_server = false;
+
+
     bool timeout = false;
+    sort_timer_lst* timer_lst;
 };
 
 #endif

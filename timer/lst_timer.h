@@ -4,17 +4,11 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <time.h>
+#include <functional>
 
-#define BUFFER_SIZE 64
+#include "../http/http_conn.h"
 
-class util_timer;
-
-struct client_data {
-    sockaddr_in address;
-    int sockfd;
-    // char buf[BUFFER_SIZE];
-    util_timer* timer;
-};
+class http_conn;
 
 class util_timer {
 public:
@@ -22,8 +16,13 @@ public:
 
 public:
     time_t expire;
-    void (*cb_func)(client_data*);
-    client_data* user_data;
+
+    typedef std::function<void()> TimeoutCallBack;
+
+    TimeoutCallBack cb;
+
+    http_conn* user_data;
+
     util_timer* prev;
     util_timer* next;
 };
@@ -111,7 +110,7 @@ public:
             if (cur < tmp->expire) {
                 break;
             }
-            tmp->cb_func(tmp->user_data);
+            tmp->cb();
             head = tmp->next;
             if (head) {
                 head->prev = NULL;

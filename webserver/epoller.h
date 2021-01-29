@@ -24,10 +24,8 @@ public:
 
     uint32_t getEvents(size_t i);
 
-    // FIXME
-    int epoll_fd;
-
 private:
+    int epoll_fd;
     epoll_event events[MAX_EVENT_NUMBER];
 
     int setnonblocking(int fd); // used by addfd

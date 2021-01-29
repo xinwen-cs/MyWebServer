@@ -22,6 +22,7 @@
 #include "http_request.h"
 #include "http_response.h"
 #include "../webserver/epoller.h"
+#include "../timer/lst_timer.h"
 
 class http_conn {
 public:
@@ -38,6 +39,8 @@ public:
 
     void process();
 
+    // FIXME
+    util_timer* timer;
 private:
     void init();
     void prepare_writev();
