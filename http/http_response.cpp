@@ -1,16 +1,41 @@
 #include "http_response.h"
 
-const char* ok_200_title = "OK";
-const char* error_400_title = "Bad Request";
-const char* error_400_form = "Your request has bad syntax or is inherently impossible to satisfy.\n";
-const char* error_403_title = "Forbidden";
-const char* error_403_form = "You do not have permission to get file from this server.\n";
-const char* error_404_title = "Not Found";
-const char* error_404_form = "The requested file was not found on this server.\n";
-const char* error_500_title = "Internal Error";
-const char* error_500_form = "There was an unusual problem serving the requested file.\n";
+const std::unordered_map<std::string, std::string> http_response::SUFFIX_TYPE = {
+    { ".html",  "text/html" },
+    { ".xml",   "text/xml" },
+    { ".xhtml", "application/xhtml+xml" },
+    { ".txt",   "text/plain" },
+    { ".rtf",   "application/rtf" },
+    { ".pdf",   "application/pdf" },
+    { ".word",  "application/msword" },
+    { ".png",   "image/png" },
+    { ".gif",   "image/gif" },
+    { ".jpg",   "image/jpeg" },
+    { ".jpeg",  "image/jpeg" },
+    { ".au",    "audio/basic" },
+    { ".mpeg",  "video/mpeg" },
+    { ".mpg",   "video/mpeg" },
+    { ".avi",   "video/x-msvideo" },
+    { ".gz",    "application/x-gzip" },
+    { ".tar",   "application/x-tar" },
+    { ".css",   "text/css "},
+    { ".js",    "text/javascript "},
+};
 
-const char* doc_root = "/var/www/html";
+const std::unordered_map<int, std::string> http_response::CODE_STATUS = {
+    {200, "OK"},
+    {400, "Bad Request"},
+    {403, "Forbidden"},
+    {404, "Not Found"},
+};
+
+const std::unordered_map<int, std::string> ERROR_HTML = {
+    {400, "/400.html"},
+    {403, "/403.html"},
+    {404, "/404.html"}
+};
+
+const char* http_response::doc_root = "/var/www/html";
 
 void http_response::init(char* url, bool keep_alive, int code) {
     m_url = url;
@@ -41,34 +66,42 @@ bool http_response::add_response(const char* format, ...) {
     return true;
 }
 
-bool http_response::add_status_line(int status, const char* title) {
-    return add_response("%s %d %s\r\n", "HTTP/1.1", status, title);
+std::string http_response::getFileType() {
+    std::string path = std::string(m_url);
+    std::string::size_type idx = path.find_last_of('.');
+
+    if (idx == std::string::npos) {
+        return "text/plain";
+    }
+
+    std::string suffix = path.substr(idx);
+    if (SUFFIX_TYPE.count(suffix)) {
+        return SUFFIX_TYPE.find(suffix)->second;
+    }
+
+    return "text/plain";
+}
+
+bool http_response::add_status_line() {
+    std::string status = CODE_STATUS.find(m_code)->second;
+    return add_response("%s %d %s\r\n", "HTTP/1.1", m_code, status.c_str());
 }
 
 void http_response::add_headers(int content_len) {
-    add_content_length(content_len);
-    add_linger();
-    add_blank_line();
-}
-
-bool http_response::add_content_length(int content_len) {
-    return add_response("Content-Length: %d\r\n", content_len);
-}
-
-bool http_response::add_linger() {
-    return add_response("Connection: %s\r\n", (m_keep_alive == true) ? "keep-alive" : "close");
-}
-
-bool http_response::add_blank_line() {
-    return add_response("%s", "\r\n");
+    add_response("Content-Length: %d\r\n", content_len);
+    add_response("Connection: %s\r\n", (m_keep_alive == true) ? "keep-alive" : "close");
+    add_response("Content-type: %s\r\n", getFileType().c_str());
+    add_response("%s", "\r\n");
 }
 
 bool http_response::add_content(const char* content) {
     return add_response("%s", content);
 }
 
-// I think it is do_response is more properly
-void http_response::do_request() {
+void http_response::do_response() {
+    const int FILENAME_LEN = 200;
+    char m_real_file[FILENAME_LEN];
+
     strcpy(m_real_file, doc_root);
     int len = strlen(doc_root);
     strncpy(m_real_file + len, m_url, FILENAME_LEN - len - 1);
@@ -99,55 +132,17 @@ bool http_response::process_write(char* buf, int* idx) {
 
     // read and map file to memory
     if (m_code == 200) {
-        do_request();
+        do_response();
     }
 
-    switch (m_code) {
-        case 500: {
-            add_status_line(500, error_500_title);
-            add_headers(strlen(error_500_form));
-            if (!add_content(error_500_form)) {
-                return false;
-            }
-            break;
-        }
-
-        case 400: {
-            add_status_line(400, error_400_title);
-            add_headers(strlen(error_400_form));
-            if (!add_content(error_400_form)) {
-                return false;
-            }
-            break;
-        }
-
-        case 404: {
-            add_status_line(404, error_404_title);
-            add_headers(strlen(error_404_form));
-            if (!add_content(error_404_form)) {
-                return false;
-            }
-            break;
-        }
-
-        case 403: {
-            add_status_line(403, error_403_title);
-            add_headers(strlen(error_403_form));
-            if (!add_content(error_403_form)) {
-                return false;
-            }
-            break;
-        }
-
-        case 200: {
-            add_status_line(200, ok_200_title);
-            if (m_file_stat.st_size != 0) {
-                add_headers(m_file_stat.st_size);
-                return true;
-            }
-            break;
-        }
-        default: { return false; }
+    if (m_code == 200) {
+        add_status_line();
+        add_headers(m_file_stat.st_size);
+    } else {
+        // FIXME
+        add_status_line();
+        add_headers(strlen("You do not have permission to get file from this server.\n"));
+        add_content("You do not have permission to get file from this server.\n");
     }
 
     return true;

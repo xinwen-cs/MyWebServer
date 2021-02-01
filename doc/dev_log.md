@@ -70,3 +70,6 @@ Requests: 11610 susceed, 0 failed.
 
 2020.2.1
 将http_conn::m_user_count设置为atomic<int>
+
+2020.2.1
+优化http_response结构
