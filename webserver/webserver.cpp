@@ -27,23 +27,12 @@ void addsig(int sig, void(handler)(int), bool restart = true) {
     assert(sigaction(sig, &sa, NULL) != -1);
 }
 
-WebServer::WebServer(Config& config) {
+WebServer::WebServer(Config& config) : m_pool(new threadpool<http_conn>), timer_lst(new sort_timer_lst) {
     m_port = config.port;
 
     addsig(SIGPIPE, SIG_IGN);
     addsig(SIGALRM, sig_handler);
     addsig(SIGTERM, sig_handler);
-
-    // http://www.cplusplus.com/articles/EhvU7k9E/
-    try {
-        m_pool = new threadpool<http_conn>;
-    } catch (...) {
-        printf("thread pool init failed\n");
-        return;
-    }
-
-    m_users = new http_conn[MAX_FD];
-    assert(m_users);
 
     m_listenfd = socket(PF_INET, SOCK_STREAM, 0);
     assert(m_listenfd >= 0);
@@ -69,10 +58,9 @@ WebServer::WebServer(Config& config) {
 
     epoller = new Epoller();
 
-    timer_lst = new sort_timer_lst();
-
     epoller->addfd(m_listenfd, false);
 
+    // FIXME
     http_conn::epoller = epoller;
 
     printf("webserver init at localhost:%d\n", m_port);
@@ -137,7 +125,7 @@ void WebServer::eventLoop() {
                 if (m_users[sockfd].read()) {
                     extentTimer(sockfd);
 
-                    m_pool->append(m_users + sockfd);
+                    m_pool->append(&m_users[sockfd]);
                 } else {
                     // closeConn(sockfd);
 
@@ -190,6 +178,7 @@ void WebServer::dealListen() {
             exit(1);
         }
 
+        // FIXME: should be atomic
         if (http_conn::m_user_count >= MAX_FD) {
             // show_error(connfd, "Internal server busy");
             // LOG_ERR
@@ -232,10 +221,7 @@ void WebServer::closeConn(int fd) {
 }
 
 WebServer::~WebServer() {
-    delete[] m_users;
-    delete m_pool;
     delete epoller;
-    delete timer_lst;
 
     close(pipefd[1]);
     close(pipefd[0]);

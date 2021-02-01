@@ -64,3 +64,6 @@ Requests: 11610 susceed, 0 failed.
 
 2020.2.1
 优化Epoller类, 使用vector封装事件
+
+2020.2.1
+使用智能指针优化WebServer类

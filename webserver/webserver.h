@@ -1,19 +1,8 @@
 #ifndef WEBSERVER_H
 #define WEBSERVER_H
 
-#include <arpa/inet.h>
-#include <assert.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/epoll.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#include <functional>
+#include <unordered_map>
+#include <memory>
 
 #include "../config/config.h"
 #include "../http/http_conn.h"
@@ -22,7 +11,6 @@
 #include "epoller.h"
 #include "../log/log.h"
 
-#define MAX_FD 65536
 #define TIMESLOT 5
 
 class WebServer {
@@ -39,10 +27,13 @@ public:
 
     void extentTimer(int fd);
 private:
+    static const int MAX_FD = 65536;
+
     int m_port;
 
-    http_conn* m_users;
-    threadpool<http_conn>* m_pool;
+    std::unordered_map<int, http_conn> m_users;
+
+    std::unique_ptr<threadpool<http_conn>> m_pool;
 
     int m_listenfd;
 
@@ -50,9 +41,8 @@ private:
 
     bool stop_server = false;
 
-
     bool timeout = false;
-    sort_timer_lst* timer_lst;
+    std::unique_ptr<sort_timer_lst> timer_lst;
 };
 
 #endif
