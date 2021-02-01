@@ -99,7 +99,7 @@ void WebServer::eventLoop() {
         }
 
         for (int i = 0; i < number; i++) {
-            int sockfd = epoller->getEventFd(i);
+            int sockfd = epoller->getEventsFd(i);
             uint32_t events = epoller->getEvents(i);
 
             if (sockfd == m_listenfd) {

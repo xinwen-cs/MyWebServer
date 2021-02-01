@@ -1,17 +1,15 @@
 #ifndef EPOLLER_H
 #define EPOLLER_H
 
-#include <sys/epoll.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <sys/epoll.h>
+#include <unistd.h>
 #include <vector>
-
-#define MAX_EVENT_NUMBER 10000
 
 class Epoller {
 public:
-    Epoller();
+    explicit Epoller(int max_events = 1024);
     ~Epoller();
 
     void addfd(int fd, bool one_shot);
@@ -20,15 +18,15 @@ public:
 
     int wait(int timeout = -1);
 
-    int getEventFd(size_t i);
+    int getEventsFd(size_t i);
 
     uint32_t getEvents(size_t i);
 
 private:
     int epoll_fd;
-    epoll_event events[MAX_EVENT_NUMBER];
+    std::vector<struct epoll_event> events;
 
-    int setnonblocking(int fd); // used by addfd
+    int setnonblocking(int fd);  // used by addfd
 };
 
 #endif

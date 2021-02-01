@@ -61,3 +61,6 @@ Requests: 11610 susceed, 0 failed.
 
 2020.2.1
 新建doc目录, 将开发日志迁移到doc/dev_log.md中
+
+2020.2.1
+优化Epoller类, 使用vector封装事件

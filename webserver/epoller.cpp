@@ -1,8 +1,6 @@
 #include "epoller.h"
 
-Epoller::Epoller() {
-    epoll_fd = epoll_create(512);
-}
+Epoller::Epoller(int max_events) : epoll_fd(epoll_create(512)), events(max_events) {}
 
 Epoller::~Epoller() {
     close(epoll_fd);
@@ -38,10 +36,10 @@ int Epoller::setnonblocking(int fd) {
 }
 
 int Epoller::wait(int timeout) {
-    return epoll_wait(epoll_fd, events, MAX_EVENT_NUMBER, timeout);
+    return epoll_wait(epoll_fd, events.data(), static_cast<int>(events.size()), timeout);
 }
 
-int Epoller::getEventFd(size_t i) {
+int Epoller::getEventsFd(size_t i) {
     return events[i].data.fd;
 }
 
