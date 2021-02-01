@@ -19,6 +19,8 @@
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <unistd.h>
+#include <atomic>
+
 #include "http_request.h"
 #include "http_response.h"
 #include "../webserver/epoller.h"
@@ -47,7 +49,7 @@ private:
 
 public:
     static Epoller* epoller;
-    static int m_user_count;
+    static std::atomic<int> m_user_count;
 
     static const int READ_BUFFER_SIZE = 2048;
     static const int WRITE_BUFFER_SIZE = 1024;
@@ -59,6 +61,9 @@ private:
     struct iovec m_iv[2];
     int m_iv_count;
 
+    // FIXME
+    // Buffer readBuff_;
+    // Buffer writeBuff_;
     int m_read_idx;
     int m_write_idx;
     char m_read_buf[READ_BUFFER_SIZE];

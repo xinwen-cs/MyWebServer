@@ -1,6 +1,6 @@
 #include "http_conn.h"
 
-int http_conn::m_user_count = 0;
+std::atomic<int> http_conn::m_user_count;
 Epoller* http_conn::epoller = NULL;
 
 void http_conn::init(int sockfd, const sockaddr_in& addr) {

@@ -178,7 +178,6 @@ void WebServer::dealListen() {
             exit(1);
         }
 
-        // FIXME: should be atomic
         if (http_conn::m_user_count >= MAX_FD) {
             // show_error(connfd, "Internal server busy");
             // LOG_ERR
