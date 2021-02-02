@@ -15,6 +15,9 @@ void http_conn::init(int sockfd, const sockaddr_in& addr) {
     int reuse = 1;
     setsockopt(m_sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 
+    int on = 1;
+    setsockopt(m_sockfd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on));
+
     ++m_user_count;
 
     init();

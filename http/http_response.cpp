@@ -67,6 +67,7 @@ bool http_response::add_response(const char* format, ...) {
 }
 
 std::string http_response::getFileType() {
+    // FIXME
     std::string path = std::string(m_url);
     std::string::size_type idx = path.find_last_of('.');
 

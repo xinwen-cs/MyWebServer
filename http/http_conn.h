@@ -20,6 +20,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 #include <atomic>
+#include <netinet/tcp.h>
 
 #include "http_request.h"
 #include "http_response.h"

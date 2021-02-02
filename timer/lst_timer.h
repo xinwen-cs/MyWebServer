@@ -100,7 +100,7 @@ public:
         delete timer;
     }
     void tick() {
-        printf("timer tick\n");
+        // printf("timer tick\n");
         if (!head) {
             return;
         }

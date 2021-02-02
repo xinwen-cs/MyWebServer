@@ -57,19 +57,45 @@ Requests: 11610 susceed, 0 failed.
 添加阻塞队列, 异步日志, 修改条件变量封装类
 
 2020.1.29
+
 对定时器模块进行部分重构
 
 2020.2.1
+
 新建doc目录, 将开发日志迁移到doc/dev_log.md中
 
 2020.2.1
+
 优化Epoller类, 使用vector封装事件
 
 2020.2.1
+
 使用智能指针优化WebServer类
 
 2020.2.1
+
 将http_conn::m_user_count设置为atomic<int>
 
 2020.2.1
+
 优化http_response结构
+
+2020.2.2
+
+开了一个8C8G的云服务器进行本地测试, 关闭Log, 添加TCP_NODELAY功能
+```sh
+./webbench -c 1000 -t 60 http://127.0.0.1:80/
+Webbench - Simple Web Benchmark 1.5
+Copyright (c) Radim Kolar 1997-2004, GPL Open Source Software.
+
+Request:
+GET / HTTP/1.0
+User-Agent: WebBench 1.5
+Host: 127.0.0.1
+
+
+Runing info: 1000 clients, running 60 sec.
+
+Speed=2255092 pages/min, 1127546 bytes/sec.
+Requests: 2255092 susceed, 0 failed.
+```
