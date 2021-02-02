@@ -7,6 +7,8 @@
 #include <sys/time.h>
 #include <time.h>
 #include <string>
+#include <atomic>
+#include <memory>
 
 #include "../locker/locker.h"
 #include "block_queue.h"
@@ -29,9 +31,10 @@ private:
 
     char* m_buf;
     FILE* m_fp;
-    block_queue<std::string>* m_log_queue;
+
+    std::unique_ptr<block_queue<std::string>> m_log_queue;
     locker m_mutex;
-    long long m_count;
+    std::atomic<long long> m_count;
     int m_split_line;
     int m_log_buf_size;
 };

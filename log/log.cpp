@@ -7,7 +7,13 @@ Log::~Log() {
         fclose(m_fp);
         m_fp = NULL;
     }
+
+    if (m_buf != NULL) {
+        delete[] m_buf;
+        m_buf = NULL;
+    }
 }
+
 
 bool Log::init(const char* file_name, int log_buf_size, int split_line, int max_queue_size) {
     m_log_buf_size = log_buf_size;
@@ -15,10 +21,10 @@ bool Log::init(const char* file_name, int log_buf_size, int split_line, int max_
     m_buf = new char[m_log_buf_size];
     memset(m_buf, '\0', m_log_buf_size);
 
-    m_log_queue = new block_queue<std::string>(max_queue_size);
+    m_log_queue = std::make_unique<block_queue<std::string>>(max_queue_size);
+
     pthread_t tid;
     pthread_create(&tid, NULL, write_log_thread, NULL);
-    // printf("log thread id is: %lu\n", tid);
 
     m_split_line = split_line;
 
@@ -49,7 +55,10 @@ void* Log::write_log_thread(void*) {
     while (log->m_log_queue->pop(log_str)) {
         log->m_mutex.lock();
         fputs(log_str.c_str(), log->m_fp);
-        fflush(log->m_fp);
+        if (log->m_count % 100000 == 0) {
+            fflush(log->m_fp);
+        }
+
         log->m_mutex.unlock();
     }
 
@@ -85,9 +94,7 @@ void Log::write_log(int level, const char* format, ...) {
         default: { strcpy(s, "[info]:"); }
     }
 
-    m_mutex.lock();
     ++m_count;
-    m_mutex.unlock();
 
     va_list valst;
 
@@ -104,8 +111,6 @@ void Log::write_log(int level, const char* format, ...) {
     m_buf[n + m + 1] = '\0';
 
     std::string log_str(m_buf);
-
-    // printf("new log %s\n", log_str.c_str());
 
     m_mutex.unlock();
 

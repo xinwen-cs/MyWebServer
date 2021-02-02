@@ -99,3 +99,7 @@ Runing info: 1000 clients, running 60 sec.
 Speed=2255092 pages/min, 1127546 bytes/sec.
 Requests: 2255092 susceed, 0 failed.
 ```
+
+2020.2.2
+
+优化Log性能
