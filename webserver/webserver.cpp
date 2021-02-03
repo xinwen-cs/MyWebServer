@@ -27,7 +27,7 @@ void addsig(int sig, void(handler)(int), bool restart = true) {
     assert(sigaction(sig, &sa, NULL) != -1);
 }
 
-WebServer::WebServer(Config& config) : m_pool(new threadpool<http_conn>), timer_lst(new sort_timer_lst) {
+WebServer::WebServer(Config& config) : m_pool(new threadpool<http_conn>(config.thread_num)), timer_lst(new sort_timer_lst) {
     m_port = config.port;
 
     addsig(SIGPIPE, SIG_IGN);
