@@ -27,6 +27,7 @@ file(GLOB PROJECT_SOURCES
     ${PROJECT_SOURCE_DIR}/http/*.cpp
 
     ${PROJECT_SOURCE_DIR}/timer/*.h
+    ${PROJECT_SOURCE_DIR}/timer/*.cpp
 
     ${PROJECT_SOURCE_DIR}/log/*.h
     ${PROJECT_SOURCE_DIR}/log/*.cpp

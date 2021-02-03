@@ -1,17 +1,15 @@
 #ifndef WEBSERVER_H
 #define WEBSERVER_H
 
-#include <unordered_map>
 #include <memory>
+#include <unordered_map>
 
 #include "../config/config.h"
 #include "../http/http_conn.h"
-#include "../threadpool/threadpool.h"
-#include "../timer/lst_timer.h"
-#include "epoller.h"
 #include "../log/log.h"
-
-#define TIMESLOT 5
+#include "../threadpool/threadpool.h"
+#include "../timer/heap_timer.h"
+#include "epoller.h"
 
 class WebServer {
 public:
@@ -26,6 +24,7 @@ public:
     void closeConn(int fd);
 
     void extentTimer(int fd);
+
 private:
     static const int MAX_FD = 65536;
 
@@ -41,8 +40,8 @@ private:
 
     bool stop_server = false;
 
-    bool timeout = false;
-    std::unique_ptr<sort_timer_lst> timer_lst;
+    int timeoutMS_;
+    std::unique_ptr<HeapTimer> timer_;
 };
 
 #endif

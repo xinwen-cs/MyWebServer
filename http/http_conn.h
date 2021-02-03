@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -20,13 +21,11 @@
 #include <sys/uio.h>
 #include <unistd.h>
 #include <atomic>
-#include <netinet/tcp.h>
 
+#include "../buffer/buffer.h"
+#include "../webserver/epoller.h"
 #include "http_request.h"
 #include "http_response.h"
-#include "../webserver/epoller.h"
-#include "../timer/lst_timer.h"
-#include "../buffer/buffer.h"
 
 class http_conn {
 public:
@@ -44,10 +43,11 @@ public:
     void process();
 
     // FIXME
-    util_timer* timer;
+    // util_timer* timer;
 
     static Epoller* epoller;
     static std::atomic<int> m_user_count;
+
 private:
     void init();
     void prepare_writev();

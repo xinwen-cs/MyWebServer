@@ -1,21 +1,5 @@
 #include "webserver.h"
 
-static int pipefd[2];
-
-int setnonblocking(int fd) {
-    int old_option = fcntl(fd, F_GETFL);
-    int new_option = old_option | O_NONBLOCK;
-    fcntl(fd, F_SETFL, new_option);
-    return old_option;
-}
-
-void sig_handler(int sig) {
-    int save_errno = errno;
-    int msg = sig;
-    send(pipefd[1], (char*)&msg, 1, 0);
-    errno = save_errno;
-}
-
 void addsig(int sig, void(handler)(int), bool restart = true) {
     struct sigaction sa;
     memset(&sa, '\0', sizeof(sa));
@@ -27,12 +11,14 @@ void addsig(int sig, void(handler)(int), bool restart = true) {
     assert(sigaction(sig, &sa, NULL) != -1);
 }
 
-WebServer::WebServer(Config& config) : m_pool(new threadpool<http_conn>(config.thread_num)), timer_lst(new sort_timer_lst) {
+WebServer::WebServer(Config& config) : m_pool(new threadpool<http_conn>(config.thread_num)), timer_(new HeapTimer) {
+    timeoutMS_ = 12000;
+
     m_port = config.port;
 
     addsig(SIGPIPE, SIG_IGN);
-    addsig(SIGALRM, sig_handler);
-    addsig(SIGTERM, sig_handler);
+    // addsig(SIGALRM, sig_handler);
+    // addsig(SIGTERM, sig_handler);
 
     m_listenfd = socket(PF_INET, SOCK_STREAM, 0);
     assert(m_listenfd >= 0);
@@ -65,21 +51,15 @@ WebServer::WebServer(Config& config) : m_pool(new threadpool<http_conn>(config.t
 
     printf("webserver init at localhost:%d\n", m_port);
 
-    ret = socketpair(PF_UNIX, SOCK_STREAM, 0, pipefd);
-    assert(ret != -1);
-
-    setnonblocking(pipefd[1]);
-    // not 100% correct because should not have RDHUP!!!
-    epoller->addfd(pipefd[0], false);
-
-    alarm(TIMESLOT);
-
     Log::get_instance()->init("serverlog", 8192, 1000000, 10000);
 }
 
 void WebServer::eventLoop() {
+    int timeMS = -1;
     while (!stop_server) {
-        int number = epoller->wait();
+        timeMS = timer_->GetNextTick();
+
+        int number = epoller->wait(timeMS);
 
         if ((number < 0) && (errno != EINTR)) {
             printf("epoll failure\n");
@@ -94,72 +74,20 @@ void WebServer::eventLoop() {
                 dealListen();
             } else if (events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
                 closeConn(sockfd);
-
-                util_timer* timer = m_users[sockfd].timer;
-                if (timer) {
-                    timer_lst->del_timer(timer);
-                }
-
-            } else if ((sockfd == pipefd[0]) && (events & EPOLLIN)) {
-                char signals[16];
-                int ret = recv(pipefd[0], signals, sizeof(signals), 0);
-                if (ret == -1) {
-                    continue;
-                } else if (ret == 0) {
-                    continue;
-                } else {
-                    for (int i = 0; i < ret; ++i) {
-                        switch (signals[i]) {
-                            case SIGALRM: {
-                                timeout = true;
-                                break;
-                            }
-                            case SIGTERM: {
-                                stop_server = true;
-                            }
-                        }
-                    }
-                }
-
             } else if (events & EPOLLIN) {
                 if (m_users[sockfd].read()) {
                     extentTimer(sockfd);
-
                     m_pool->append(&m_users[sockfd]);
                 } else {
-                    // closeConn(sockfd);
-
-                    util_timer* timer = m_users[sockfd].timer;
-                    timer->cb();
-                    if (timer) {
-                        timer_lst->del_timer(timer);
-                    }
+                    closeConn(sockfd);
                 }
-
             } else if (events & EPOLLOUT) {
                 if (!m_users[sockfd].write()) {
-                    // closeConn(sockfd);
-                    // timer->cb_func(&users_timer[sockfd]);
-
-                    util_timer* timer = m_users[sockfd].timer;
-                    timer->cb();
-                    if (timer) {
-                        timer_lst->del_timer(timer);
-                    }
-
+                    closeConn(sockfd);
                 } else {
                     extentTimer(sockfd);
                 }
-
-            } else {
-                // LOG Unexpected event;
             }
-        }
-
-        if (timeout) {
-            timer_lst->tick();
-            alarm(TIMESLOT);
-            timeout = false;
         }
     }
 }
@@ -193,23 +121,14 @@ void WebServer::addClient(int fd, sockaddr_in addr) {
     epoller->addfd(fd, true);
     LOG_INFO("%s: %d", "new client", fd);
 
-    util_timer* timer = new util_timer;
-    timer->user_data = &m_users[fd];
-    timer->expire = time(NULL) + 3 * TIMESLOT;
-    timer->cb = std::bind(&WebServer::closeConn, this, fd);
-    m_users[fd].timer = timer;
-    timer_lst->add_timer(timer);
-
-    // timer_->add(fd, timeoutMS_, std::bind(&WebServer::CloseConn_, this, &users_[fd]));
+    if (timeoutMS_ > 0) {
+        timer_->add(fd, timeoutMS_, std::bind(&WebServer::closeConn, this, fd));
+    }
 }
 
 void WebServer::extentTimer(int fd) {
-    util_timer* timer = m_users[fd].timer;
-
-    if (timer) {
-        time_t cur = time(NULL);
-        timer->expire = cur + 3 * TIMESLOT;
-        timer_lst->adjust_timer(timer);
+    if (timeoutMS_ > 0) {
+        timer_->adjust(fd, timeoutMS_);
     }
 }
 
@@ -221,9 +140,5 @@ void WebServer::closeConn(int fd) {
 
 WebServer::~WebServer() {
     delete epoller;
-
-    close(pipefd[1]);
-    close(pipefd[0]);
-
     close(m_listenfd);
 }
