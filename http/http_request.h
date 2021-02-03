@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../buffer/buffer.h"
 
 class http_request {
 public:
@@ -41,7 +42,8 @@ public:
         m_checked_idx = 0;
     }
 
-    int process_read(char* buf, int idx);
+    // int process_read(char* buf, int idx);
+    int process_read(Buffer& buf);
 
     // called by http_response
     bool getKeepAlive();
@@ -53,10 +55,9 @@ private:
     HTTP_CODE parse_content(char* text);
     LINE_STATUS parse_line();
 
-    /**********************/
+    // FIXME
     int m_read_idx;
     char* m_read_buf;
-    /**********************/
 
     int m_checked_idx;
     int m_start_line;

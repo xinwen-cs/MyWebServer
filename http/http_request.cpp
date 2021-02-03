@@ -109,9 +109,9 @@ http_request::HTTP_CODE http_request::parse_content(char* text) {
     return NO_REQUEST;
 }
 
-int http_request::process_read(char* buf, int idx) {
-    m_read_buf = buf;
-    m_read_idx = idx;
+int http_request::process_read(Buffer& buf) {
+    m_read_buf = const_cast<char*>(buf.Peek());
+    m_read_idx = buf.ReadableBytes();
 
     LINE_STATUS line_status = LINE_OK;
     HTTP_CODE ret = NO_REQUEST;
@@ -120,7 +120,7 @@ int http_request::process_read(char* buf, int idx) {
     while (((m_check_state == CHECK_STATE_CONTENT) && (line_status == LINE_OK)) ||
            ((line_status = parse_line()) == LINE_OK)) {
         // text = get_line();
-        text = m_read_buf + m_start_line;
+        text = const_cast<char*>(buf.Peek()) + m_start_line;
 
         m_start_line = m_checked_idx;
 

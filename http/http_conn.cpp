@@ -25,11 +25,9 @@ void http_conn::init(int sockfd, const sockaddr_in& addr) {
 
 // used by multiple functions
 void http_conn::init() {
-    m_read_idx = 0;
-    m_write_idx = 0;
-
-    memset(m_read_buf, '\0', READ_BUFFER_SIZE);
-    memset(m_write_buf, '\0', WRITE_BUFFER_SIZE);
+    // clear buffer
+    m_read_buf.RetrieveAll();
+    m_write_buf.RetrieveAll();
 
     // reset m_checked_idx and check_state
     request.init();
@@ -44,23 +42,15 @@ void http_conn::close_conn(bool real_close) {
 }
 
 bool http_conn::read() {
-    if (m_read_idx >= READ_BUFFER_SIZE) {
-        return false;
-    }
+    int saveErrno;
 
-    int bytes_read = 0;
+    ssize_t len = -1;
+
     while (true) {
-        bytes_read = recv(m_sockfd, m_read_buf + m_read_idx, READ_BUFFER_SIZE - m_read_idx, 0);
-        if (bytes_read == -1) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                break;
-            }
-            return false;
-        } else if (bytes_read == 0) {
-            return false;
+        len = m_read_buf.ReadFd(m_sockfd, &saveErrno);
+        if (len <= 0) {
+            break;
         }
-
-        m_read_idx += bytes_read;
     }
 
     return true;
@@ -86,10 +76,10 @@ bool http_conn::write() {
 
         if (static_cast<unsigned>(bytes_have_send) >= m_iv[0].iov_len) {
             m_iv[0].iov_len = 0;
-            m_iv[1].iov_base = response.getFileAddr() + (bytes_have_send - m_write_idx);
+            m_iv[1].iov_base = response.getFileAddr() + (bytes_have_send - m_write_buf.ReadableBytes());
             m_iv[1].iov_len = bytes_to_send;
         } else {
-            m_iv[0].iov_base = m_write_buf + bytes_have_send;
+            m_iv[0].iov_base = const_cast<char*>(m_write_buf.Peek()) + bytes_have_send;
             m_iv[0].iov_len = m_iv[0].iov_len - bytes_have_send;
         }
 
@@ -107,7 +97,7 @@ bool http_conn::write() {
 }
 
 void http_conn::process() {
-    int ret = request.process_read(m_read_buf, m_read_idx);
+    int ret = request.process_read(m_read_buf);
 
     if (ret == 0) {  // NO
         epoller->modfd(m_sockfd, EPOLLIN);
@@ -118,7 +108,7 @@ void http_conn::process() {
         response.init(request.getPath(), request.getKeepAlive(), 400);
     }
 
-    bool write_ret = response.process_write(m_write_buf, &m_write_idx);
+    bool write_ret = response.process_write(m_write_buf);
 
     // false when write_buffer overflow
     if (!write_ret) {
@@ -132,17 +122,17 @@ void http_conn::process() {
 }
 
 void http_conn::prepare_writev() {
-    m_iv[0].iov_base = m_write_buf;
-    m_iv[0].iov_len = m_write_idx;
+    m_iv[0].iov_base = const_cast<char*>(m_write_buf.Peek());
+    m_iv[0].iov_len = m_write_buf.ReadableBytes();
     m_iv_count = 1;
 
     bytes_have_send = 0;
-    bytes_to_send = m_write_idx;
+    bytes_to_send = m_write_buf.ReadableBytes();
 
     if (response.getFileAddr() && response.getFileLen() > 0) {
         m_iv[1].iov_base = response.getFileAddr();
         m_iv[1].iov_len = response.getFileLen();
         m_iv_count = 2;
-        bytes_to_send = m_write_idx + response.getFileLen();
+        bytes_to_send = m_write_buf.ReadableBytes() + response.getFileLen();
     }
 }

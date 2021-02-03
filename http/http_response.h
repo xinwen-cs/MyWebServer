@@ -9,33 +9,31 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <unordered_map>
+#include <string>
+
+#include "../buffer/buffer.h"
 
 class http_response {
 public:
     void init(char* url, bool keep_alive, int code);
 
-    bool process_write(char* buf, int* idx);
+    bool process_write(Buffer& buf);
 
     char* getFileAddr();
     int getFileLen();
     void unmap();
 
 private:
-    bool add_response(const char* format, ...);
-    bool add_content(const char* content);
-    bool add_status_line();
-    void add_headers(int content_length);
-    bool add_content_length(int content_length);
-    bool add_linger();
-    bool add_blank_line();
+    // bool add_response(const char* format, ...);
+    void add_content(Buffer& buf, const char* content);
+    void add_status_line(Buffer& buf);
+    void add_headers(Buffer& buf, int content_length);
+    void add_content_length(Buffer& buf, int content_length);
+    // bool add_linger();
+    // bool add_blank_line();
 
     // open file and mmap to memory
     void do_response();
-
-    /******************************/
-    int* m_write_idx;
-    char* m_write_buf;
-    /******************************/
 
     char* m_file_address;
     struct stat m_file_stat;

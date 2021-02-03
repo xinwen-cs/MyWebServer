@@ -30,6 +30,9 @@ file(GLOB PROJECT_SOURCES
 
     ${PROJECT_SOURCE_DIR}/log/*.h
     ${PROJECT_SOURCE_DIR}/log/*.cpp
+
+    ${PROJECT_SOURCE_DIR}/buffer/*.h
+    ${PROJECT_SOURCE_DIR}/buffer/*.cpp
 )
 
 add_executable(${PROJECT_NAME} main.cpp ${PROJECT_SOURCES})

@@ -103,3 +103,6 @@ Requests: 2255092 susceed, 0 failed.
 2020.2.2
 
 优化Log性能
+
+2020.2.3
+添加buffer类, 并使用它优化http类结构

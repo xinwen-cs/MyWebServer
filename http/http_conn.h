@@ -26,6 +26,7 @@
 #include "http_response.h"
 #include "../webserver/epoller.h"
 #include "../timer/lst_timer.h"
+#include "../buffer/buffer.h"
 
 class http_conn {
 public:
@@ -44,18 +45,13 @@ public:
 
     // FIXME
     util_timer* timer;
+
+    static Epoller* epoller;
+    static std::atomic<int> m_user_count;
 private:
     void init();
     void prepare_writev();
 
-public:
-    static Epoller* epoller;
-    static std::atomic<int> m_user_count;
-
-    static const int READ_BUFFER_SIZE = 2048;
-    static const int WRITE_BUFFER_SIZE = 1024;
-
-private:
     int m_sockfd;
     sockaddr_in m_address;
 
@@ -63,15 +59,11 @@ private:
     int m_iv_count;
 
     // FIXME
-    // Buffer readBuff_;
-    // Buffer writeBuff_;
-    int m_read_idx;
-    int m_write_idx;
-    char m_read_buf[READ_BUFFER_SIZE];
-    char m_write_buf[WRITE_BUFFER_SIZE];
-
     int bytes_to_send;
     int bytes_have_send;
+
+    Buffer m_read_buf;
+    Buffer m_write_buf;
 
     http_request request;
     http_response response;

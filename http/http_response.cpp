@@ -41,33 +41,14 @@ void http_response::init(char* url, bool keep_alive, int code) {
     m_url = url;
     m_keep_alive = keep_alive;
     m_code = code;  // 200 or 400
-}
-
-bool http_response::add_response(const char* format, ...) {
-    const int WRITE_BUFFER_SIZE = 1024;
-
-    // will it happen?
-    if (*m_write_idx >= WRITE_BUFFER_SIZE) {
-        return false;
-    }
-
-    va_list arg_list;
-    va_start(arg_list, format);
-
-    int len = vsnprintf(m_write_buf + *m_write_idx, WRITE_BUFFER_SIZE - 1 - *m_write_idx, format, arg_list);
-
-    // will it happen?
-    if (len >= (WRITE_BUFFER_SIZE - 1 - *m_write_idx)) {
-        return false;
-    }
-
-    *m_write_idx += len;
-    va_end(arg_list);
-    return true;
+    m_file_address = NULL;
 }
 
 std::string http_response::getFileType() {
-    // FIXME
+    if (m_url == NULL) {
+        return "text/plain";
+    }
+
     std::string path = std::string(m_url);
     std::string::size_type idx = path.find_last_of('.');
 
@@ -80,23 +61,28 @@ std::string http_response::getFileType() {
         return SUFFIX_TYPE.find(suffix)->second;
     }
 
+    // warning: control reaches end of non-void function [-Wreturn-type]
     return "text/plain";
 }
 
-bool http_response::add_status_line() {
+void http_response::add_status_line(Buffer& buf) {
     std::string status = CODE_STATUS.find(m_code)->second;
-    return add_response("%s %d %s\r\n", "HTTP/1.1", m_code, status.c_str());
+    buf.Append("HTTP/1.1 " + std::to_string(m_code) + " " + status.c_str() + "\r\n");
 }
 
-void http_response::add_headers(int content_len) {
-    add_response("Content-Length: %d\r\n", content_len);
-    add_response("Connection: %s\r\n", (m_keep_alive == true) ? "keep-alive" : "close");
-    add_response("Content-type: %s\r\n", getFileType().c_str());
-    add_response("%s", "\r\n");
+void http_response::add_headers(Buffer& buf, int content_len) {
+    buf.Append("Content-Length: " + std::to_string(content_len) + "\r\n");
+
+    buf.Append("Connection: ");
+    buf.Append((m_keep_alive == true) ? "keep-alive" : "close");
+    buf.Append("\r\n");
+
+    buf.Append("Content-type: " + getFileType() + "\r\n");
+    buf.Append("\r\n");
 }
 
-bool http_response::add_content(const char* content) {
-    return add_response("%s", content);
+void http_response::add_content(Buffer& buf, const char* content) {
+    buf.Append(content);
 }
 
 void http_response::do_response() {
@@ -127,23 +113,20 @@ void http_response::do_response() {
     close(fd);
 }
 
-bool http_response::process_write(char* buf, int* idx) {
-    m_write_buf = buf;
-    m_write_idx = idx;
-
+bool http_response::process_write(Buffer& buf) {
     // read and map file to memory
     if (m_code == 200) {
         do_response();
     }
 
     if (m_code == 200) {
-        add_status_line();
-        add_headers(m_file_stat.st_size);
+        add_status_line(buf);
+        add_headers(buf, m_file_stat.st_size);
     } else {
         // FIXME
-        add_status_line();
-        add_headers(strlen("You do not have permission to get file from this server.\n"));
-        add_content("You do not have permission to get file from this server.\n");
+        add_status_line(buf);
+        add_headers(buf, strlen("You do not have permission to get file from this server.\n"));
+        add_content(buf, "You do not have permission to get file from this server.\n");
     }
 
     return true;
