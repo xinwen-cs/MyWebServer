@@ -1,16 +1,13 @@
 #include "heap_timer.h"
 
 void HeapTimer::SwapNode_(size_t i, size_t j) {
-    // assert(i >= 0 && i < heap_.size());
-    // assert(j >= 0 && j < heap_.size());
     std::swap(heap_[i], heap_[j]);
     ref_[heap_[i].id] = i;
     ref_[heap_[j].id] = j;
 }
 
 void HeapTimer::siftup_(size_t i) {
-    // assert(i >= 0 && i < heap_.size());
-    size_t j = (i - 1) / 2;
+    int j = (i - 1) / 2;
     while (j >= 0) {
         if (heap_[j] < heap_[i]) {
             break;
@@ -22,8 +19,6 @@ void HeapTimer::siftup_(size_t i) {
 }
 
 bool HeapTimer::siftdown_(size_t index, size_t n) {
-    // assert(index >= 0 && index < heap_.size());
-    // assert(n >= 0 && n <= heap_.size());
     size_t i = index;
     size_t j = i * 2 + 1;
     while (j < n) {
@@ -57,17 +52,6 @@ void HeapTimer::add(int id, int timeout, const TimeoutCallBack& cb) {
         }
     }
 }
-
-// void HeapTimer::doWork(int id) {
-//     /* 删除指定id结点，并触发回调函数 */
-//     if (heap_.empty() || ref_.count(id) == 0) {
-//         return;
-//     }
-//     size_t i = ref_[id];
-//     TimerNode node = heap_[i];
-//     node.cb();
-//     del_(i);
-// }
 
 void HeapTimer::del_(size_t index) {
     /* 删除指定位置的结点 */
@@ -122,7 +106,7 @@ void HeapTimer::clear() {
 
 int HeapTimer::GetNextTick() {
     tick();
-    size_t res = -1;
+    int res = -1;
     if (!heap_.empty()) {
         res = std::chrono::duration_cast<MS>(heap_.front().expires - Clock::now()).count();
         if (res < 0) {
